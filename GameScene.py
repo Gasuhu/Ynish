@@ -4,11 +4,13 @@ import math
 class GameScene(wx.Panel):
     def __init__(self, parent):
         super(GameScene, self).__init__(parent)
-        self.activePLayer ='1'
+        self.parent = parent
         self.gameType='2player'
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
+
+        self.activePLayer ='1'
         self.isJump=False
         self.CellsClickByPLayer1=[]
         self.CellsClickByPLayer2=[]
@@ -17,7 +19,9 @@ class GameScene(wx.Panel):
         self.activeRing=()
         self.BlackPoints=[]
         self.smallRingsToFlip=[]
-        self.directions=[ (1,0), (1, 1), (1, -1),(-1, -0), (-1, -1), (-1, 1)]
+        self.directions=[ (1,0), (1, 1), (1, -1),(-1, 0), (-1, -1), (-1, 1)]
+        self.directionDiagonal=[(1, 1), (1, -1),(-1, -1), (-1, 1)]
+        self.directionVertical=[(1,0),(-1,0)]
         self.ringsValidated=[]
         self.ringPlayer1Valided=0
         self.ringPlayer2Valided=0
@@ -47,13 +51,22 @@ class GameScene(wx.Panel):
         self.cell_size_x = 50
         self.cell_size_y = 30
         self.start_x = 70
-        self.start_y = 120
+        self.start_y = 130
 
          # Create turn label
         self.turn = 1
         self.turn_label = wx.StaticText(self, label="Turn: 1", pos=(330, 10))
-        self.turn_label = wx.StaticText(self, label="PLAYER 1", pos=(70, 30))
-        self.turn_label = wx.StaticText(self, label="PLAYER 2", pos=(565, 30))
+        wx.StaticText(self, label="PLAYER 1", pos=(70, 30))
+        self.player1Pos =( 50 , 60)
+        wx.StaticText(self, label="PLAYER 2", pos=(565, 30))
+        self.player2Pos =( 545 , 60)
+        self.rectValidated1=[70,90,200,200]
+        self.rectValidated12=[565,90,200,200]
+
+
+        retoutner = wx.Button(self, label='Retour au menu principal', size=(150,40),pos=(490,790))
+        retoutner.Bind(wx.EVT_BUTTON, self.CloseGame)
+
 
         # Create player label
         self.player_label = wx.StaticText(self, label="Player 1 turn play !", pos=(300, 750))
@@ -66,6 +79,8 @@ class GameScene(wx.Panel):
         self.drawPlayerCircle(dc,"2")
         self.drawHoverCircle(dc)
         self.drawBoard(dc)
+        self.drawValidaionsRings(dc)
+        self.checkEndGame()
 
 
 
@@ -174,24 +189,41 @@ class GameScene(wx.Panel):
                         self.turn+=1
                         self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
                         # chech for player 1
-                        if(self.check_five_in_a_line(3)):
-                            self.ringPlayer1Valided+=1
-                            for ring in self.ringsValidated:
-                                self.CellsClickBySmallPLayer1.remove(ring)
-                                x = self.start_x + ring[1] * self.cell_size_x 
-                                y = self.start_y + ring[0]* self.cell_size_y 
-                                self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
-
-                        if(self.check_five_in_a_line(-3)):
-                            self.ringPlayer2Valided+=1
-                            for ring in self.ringsValidated:
-                                self.CellsClickBySmallPLayer2.remove(ring)
-                                x = self.start_x + ring[1] * self.cell_size_x 
-                                y = self.start_y + ring[0]* self.cell_size_y 
-                                self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                        self.process_ring_validation(3, self.CellsClickBySmallPLayer1)
+                        self.process_ring_validation(-3, self.CellsClickBySmallPLayer2)
 
 
-
+    def drawValidaionsRings(self,dc):
+        for i in range(self.ringPlayer1Valided):
+            self.draw_validattion_ring(dc,'1',i)
+        for i in range(self.ringPlayer2Valided):
+            self.draw_validattion_ring(dc,'2',i)
+    def draw_validattion_ring(self,dc,player,i):
+        row, col = self.player1Pos if player=="1" else self.player2Pos
+        x =row + i*15
+        y = col
+        # Draw empty circle with 4 pixel width
+        outer_radius = self.cell_size_x // 2 - 2
+        inner_radius = outer_radius - 5
+        dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
+        dc.SetBrush(wx.Brush(wx.YELLOW if player =="1" else wx.BLUE ))  # Set brush color to red
+        dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, outer_radius)
+        dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
+        dc.SetBrush(wx.Brush(wx.Colour(240, 240, 240)))  # Set brush color to red
+        dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, inner_radius)
+    def process_ring_validation(self, check_value, cells_click_list):
+        if self.check_five_in_a_line(check_value):
+            if  check_value == 3 :
+                 self.ringPlayer1Valided +=1
+            else :
+                self.ringPlayer2Valided +=1 
+            for ring in self.ringsValidated:
+                cells_click_list.remove(ring)
+                self.board[ring[0]][ring[1]] = 1
+                x = self.start_x + ring[1] * self.cell_size_x 
+                y = self.start_y + ring[0] * self.cell_size_y 
+                self.Refresh(eraseBackground=False, rect=[x, y - self.cell_size_y // 2, self.cell_size_x, 2 * self.cell_size_y])
+            self.Refresh(eraseBackground=False,rect=(50,50,200,200) if check_value == 3 else (545,50,200,200) )
     def check_five_in_a_line(self,player):
             
         def in_bounds(x, y):
@@ -204,6 +236,15 @@ class GameScene(wx.Panel):
                     return False
                 self.ringsValidated.append((x + i * dx,y + i * dy))
             return True 
+            
+        def check_direction_vertical(x, y, dx, dy):
+            self.ringsValidated=[]
+            for i in range(10):
+                if not in_bounds(x + i * dx, y + i * dy) or self.board[x + i * dx][y + i * dy] not in [player,0]:
+                    return False
+                if self.board[x + i * dx][y + i * dy] == player :
+                    self.ringsValidated.append((x + i * dx,y + i * dy))
+            return True 
 
 
         rows = len(self.board)
@@ -213,8 +254,11 @@ class GameScene(wx.Panel):
         for x in range(rows):
             for y in range(cols):
                 if self.board[x][y] == player:
-                    for dx, dy in self.directions:
+                    for dx, dy in self.directionDiagonal:
                         if check_direction_diagonal(x, y, dx, dy):
+                            return True
+                    for dx, dy in self.directionVertical:
+                        if check_direction_vertical(x, y, dx, dy):
                             return True
         return False  
                     
@@ -396,4 +440,81 @@ class GameScene(wx.Panel):
             dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
             dc.SetBrush(wx.Brush(wx.BLACK ))  # Set brush color to red
             dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, outer_radius)
+    
+    def checkEndGame(self):
+        if(self.ringPlayer1Valided==3):
+            self.ShowEndGameDialog("1")
+        else:
+            if(self.ringPlayer2Valided==3):
+                self.ShowEndGameDialog("2")
+
             
+    def ShowEndGameDialog(self,player):
+        dlg = wx.MessageDialog(self, 
+            "Le joueur {0} a gagnée la partie ! Voulez vous rejouer ?".format(player), 
+            "Fin", 
+            wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+
+        dlg.SetYesNoLabels("Rejouer", "Retourner")
+
+        result = dlg.ShowModal()
+        if result == wx.ID_YES:
+            self.RestartGame()
+        elif result == wx.ID_NO:
+            self.CloseGame()
+        dlg.Destroy()
+
+    def RestartGame(self):
+        self.activePLayer ='1'
+        self.isJump=False
+        self.CellsClickByPLayer1=[]
+        self.CellsClickByPLayer2=[]
+        self.CellsClickBySmallPLayer1=[]
+        self.CellsClickBySmallPLayer2=[]
+        self.activeRing=()
+        self.BlackPoints=[]
+        self.smallRingsToFlip=[]
+        self.directions=[ (1,0), (1, 1), (1, -1),(-1, 0), (-1, -1), (-1, 1)]
+        self.directionDiagonal=[(1, 1), (1, -1),(-1, -1), (-1, 1)]
+        self.directionVertical=[(1,0),(-1,0)]
+        self.ringsValidated=[]
+        self.ringPlayer1Valided=0
+        self.ringPlayer2Valided=0
+        self.hovered_cell = None  # Store the index of the hovered cell
+        self.active_hovered=None # Store the index of the active
+        self.board = [
+            [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0],
+            [0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
+        ]
+        self.refresh()
+
+
+    def CloseGame(self,event):
+        confirmation_dialog = wx.MessageDialog(
+            self, 
+            "Voulez vous vraimment quiter la partie actuelle", 
+            "Confiramation", 
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION
+        )
+
+        if confirmation_dialog.ShowModal() == wx.ID_YES:
+            self.parent.ShowMainMenu()
+        
+        confirmation_dialog.Destroy()

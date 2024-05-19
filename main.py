@@ -14,8 +14,8 @@ class MainFrame(wx.Frame):
         button_size = (200, 60)
 
         # Add buttons with gaps in between
-        button1 = wx.Button(self.panel, label='Jouer vs ai', size=button_size)
-        button2 = wx.Button(self.panel, label='Jouer 2 joueur', size=button_size)
+        button1 = wx.Button(self.panel, label='Jouer a 2 Joueur', size=button_size)
+        button2 = wx.Button(self.panel, label='Jouer vs ai', size=button_size)
         button3 = wx.Button(self.panel, label='Jouer en réseau', size=button_size)
 
         self.vbox.Add(button1, 0, wx.ALIGN_CENTER | wx.TOP, 20)  # Add top gap for the first button
@@ -28,21 +28,25 @@ class MainFrame(wx.Frame):
         self.panel.SetSizer(self.hbox)
 
         self.SetSize((600, 800))
-        self.SetTitle('Menu Screen with Buttons')
+        self.SetTitle('Menu Screen')
         self.Centre()
 
         button1.Bind(wx.EVT_BUTTON, self.OnButton1Click)
 
     def OnButton1Click(self, event):
-        self.panel.Destroy()  # Remove the panel with the buttons
-        self.ShowCircle()
+        self.ShowGame()
 
-    def ShowCircle(self):
+    def ShowGame(self):
+        self.panel.Destroy()  # Remove the panel with the buttons
         game_panel = GameScene(self)
         self.SetTitle('Game Scene YNISH')
         self.SetSize((700, 900))
         self.Centre()
         self.Layout()
+
+    def ShowMainMenu(self):
+        self.DestroyChildren()  # Remove all children components
+        self.InitUI()  # Reinitialize the main menu UI
 
 def main():
     app = wx.App()
