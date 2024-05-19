@@ -52,10 +52,10 @@ class GameScene(wx.Panel):
         self.cell_size_y = 30
         self.start_x = 70
         self.start_y = 130
-
+        self.selectRingPLayer1 = False
+        self.selectRingPLayer2 = False
          # Create turn label
-        self.turn = 1
-        self.turn_label = wx.StaticText(self, label="Turn: 1", pos=(330, 10))
+
         wx.StaticText(self, label="PLAYER 1", pos=(70, 30))
         self.player1Pos =( 50 , 60)
         wx.StaticText(self, label="PLAYER 2", pos=(565, 30))
@@ -67,7 +67,10 @@ class GameScene(wx.Panel):
         retoutner = wx.Button(self, label='Retour au menu principal', size=(150,40),pos=(490,790))
         retoutner.Bind(wx.EVT_BUTTON, self.CloseGame)
 
-
+        restart = wx.Button(self, label='Rédemarer la partie', size=(150,40),pos=(50,790))
+        restart.Bind(wx.EVT_BUTTON, self.RestartGame)
+        self.turn = 1
+        self.turn_label = wx.StaticText(self, label="Turn: 1", pos=(330, 10))
         # Create player label
         self.player_label = wx.StaticText(self, label="Player 1 turn play !", pos=(300, 750))
 
@@ -98,7 +101,7 @@ class GameScene(wx.Panel):
                 if self.active_hovered is not None :
                     x = self.start_x + self.active_hovered[1] * self.cell_size_x 
                     y = self.start_y + self.active_hovered[0] * self.cell_size_y 
-                    self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                    self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2-50, self.cell_size_x,2*self.cell_size_y+50])
                 self.hovered_cell = (row, col)
                 self.active_hovered=(row, col)
             else:
@@ -110,7 +113,7 @@ class GameScene(wx.Panel):
             # new circle
             x = self.start_x + col * self.cell_size_x 
             y = self.start_y + row * self.cell_size_y 
-            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2-50, self.cell_size_x,2*self.cell_size_y+50])
 
     def OnLeftClick(self, event):
         x, y = event.GetPosition()
@@ -202,7 +205,6 @@ class GameScene(wx.Panel):
         row, col = self.player1Pos if player=="1" else self.player2Pos
         x =row + i*15
         y = col
-        # Draw empty circle with 4 pixel width
         outer_radius = self.cell_size_x // 2 - 2
         inner_radius = outer_radius - 5
         dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
@@ -214,16 +216,18 @@ class GameScene(wx.Panel):
     def process_ring_validation(self, check_value, cells_click_list):
         if self.check_five_in_a_line(check_value):
             if  check_value == 3 :
-                 self.ringPlayer1Valided +=1
+                 self.selectRingPLayer1=True
+                 #self.ringPlayer1Valided +=1
             else :
-                self.ringPlayer2Valided +=1 
-            for ring in self.ringsValidated:
-                cells_click_list.remove(ring)
-                self.board[ring[0]][ring[1]] = 1
-                x = self.start_x + ring[1] * self.cell_size_x 
-                y = self.start_y + ring[0] * self.cell_size_y 
-                self.Refresh(eraseBackground=False, rect=[x, y - self.cell_size_y // 2, self.cell_size_x, 2 * self.cell_size_y])
-            self.Refresh(eraseBackground=False,rect=(50,50,200,200) if check_value == 3 else (545,50,200,200) )
+                self.selectRingPLayer2=True
+                #self.ringPlayer2Valided +=1 
+            # for ring in self.ringsValidated:
+            #     cells_click_list.remove(ring)
+            #     self.board[ring[0]][ring[1]] = 1
+            #     x = self.start_x + ring[1] * self.cell_size_x 
+            #     y = self.start_y + ring[0] * self.cell_size_y 
+            #     self.Refresh(eraseBackground=False, rect=[x, y - self.cell_size_y // 2, self.cell_size_x, 2 * self.cell_size_y])
+            # self.Refresh(eraseBackground=False,rect=(50,50,200,200) if check_value == 3 else (545,50,200,200) )
     def check_five_in_a_line(self,player):
             
         def in_bounds(x, y):
@@ -368,6 +372,7 @@ class GameScene(wx.Panel):
                 dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
                 dc.SetBrush(wx.Brush(wx.WHITE))  # Set brush color to red
                 dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, inner_radius)
+
         else :
             if  not self.isJump :
                 if self.isHoverPlayer():
@@ -399,6 +404,28 @@ class GameScene(wx.Panel):
                     dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
                     dc.SetBrush(wx.Brush(wx.WHITE))  # Set brush color to red
                     dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, inner_radius)
+    
+            if(self.selectRingPLayer1 or self.selectRingPLayer2):
+                if self.isHoverPlayer():
+                    row, col = self.hovered_cell
+                    x = self.start_x + col * self.cell_size_x
+                    y = self.start_y + row * self.cell_size_y
+                    print("sss")
+                    cells=self.CellsClickByPLayer1  if self.selectRingPLayer1 else self.CellsClickByPLayer2
+                    if self.hovered_cell in cells:
+                        if(self.activePLayer=='1'):
+                            dc.SetBrush(wx.Brush(wx.Colour(255, 255, 175)))  
+                        else:
+                            dc.SetBrush(wx.Brush(wx.Colour(130, 130, 255)))  
+                        
+                        self.drawTriangle(x,y,dc)
+                    
+
+    def drawTriangle(self,x,y,dc):
+        points = [(x + self.cell_size_x // 2, y +  self.cell_size_y // 2 -30 ), (x+self.cell_size_x // 2 - 12, y+  self.cell_size_y // 2 -50), (x + self.cell_size_x // 2+12, y+ self.cell_size_y // 2+-50)]
+
+        # Draw the filled triangle
+        dc.DrawPolygon(points)
 
 
     def isHoverPlayer(self):
@@ -459,12 +486,12 @@ class GameScene(wx.Panel):
 
         result = dlg.ShowModal()
         if result == wx.ID_YES:
-            self.RestartGame()
+            self.RestartGame(None)
         elif result == wx.ID_NO:
-            self.CloseGame()
+            self.CloseGame(None)
         dlg.Destroy()
 
-    def RestartGame(self):
+    def RestartGame(self,event):
         self.activePLayer ='1'
         self.isJump=False
         self.CellsClickByPLayer1=[]
@@ -503,7 +530,13 @@ class GameScene(wx.Panel):
             [0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0],
             [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
         ]
-        self.refresh()
+        self.selectRingPLayer1 = False
+        self.selectRingPLayer2 = False
+        self.turn = 1
+        self.turn_label = wx.StaticText(self, label="Turn: 1    ", pos=(330, 10))
+        # Create player label
+        self.player_label = wx.StaticText(self, label="Player 1 turn play !", pos=(300, 750))
+        self.Refresh()
 
 
     def CloseGame(self,event):
