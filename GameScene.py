@@ -104,16 +104,13 @@ class GameScene(wx.Panel):
                     self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2-50, self.cell_size_x,2*self.cell_size_y+50])
                 self.hovered_cell = (row, col)
                 self.active_hovered=(row, col)
-            else:
-                self.hovered_cell = None
-        else:
-            self.hovered_cell = None
-        if(self.hovered_cell is not None):
+                # new circle
+                x = self.start_x + col * self.cell_size_x 
+                y = self.start_y + row * self.cell_size_y 
+                self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2-50, self.cell_size_x,2*self.cell_size_y+50])
 
-            # new circle
-            x = self.start_x + col * self.cell_size_x 
-            y = self.start_y + row * self.cell_size_y 
-            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2-50, self.cell_size_x,2*self.cell_size_y+50])
+
+
 
     def OnLeftClick(self, event):
         x, y = event.GetPosition()
@@ -196,25 +193,27 @@ class GameScene(wx.Panel):
                             self.activePLayer='1'
                             self.turn-=1
                         if(self.process_ring_validation(-3, self.CellsClickBySmallPLayer2)):
-                            self.activePLayer=='2'
+                            self.activePLayer='2'
                             self.turn-=1
                         self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
 
                     else :
                         if self.selectRingPLayer1 or self.selectRingPLayer2:
-                            self.selectRingPLayer1=False
-                            self.selectRingPLayer2=False
-                            
-                            if(self.activePLayer=='1'):
-                                self.activePLayer='2'
-                                self.ringPlayer1Valided +=1
-                                self.CellsClickByPLayer1.remove((row,col))
-                            else:
-                                self.activePLayer='1'
-                                self.ringPlayer2Valided +=1
-                                self.CellsClickByPLayer2.remvoe((row,col))
-                            self.turn+=1
-                            self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePLayer!='1' else (545,50,200,200) )
+                            if self.isHoverPlayer():
+                                self.selectRingPLayer1=False
+                                self.selectRingPLayer2=False
+                                
+                                if(self.activePLayer=='1'):
+                                    self.activePLayer='2'
+                                    self.ringPlayer1Valided +=1
+                                    self.CellsClickByPLayer1.remove((row,col))
+                                else:
+                                    self.activePLayer='1'
+                                    self.ringPlayer2Valided +=1
+                                    self.CellsClickByPLayer2.remove((row,col))
+                                self.board[row][col]=1
+                                self.turn+=1
+                                self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePLayer!='1' else (545,50,200,200) )
                         
                     
 
@@ -437,10 +436,8 @@ class GameScene(wx.Panel):
                     row, col = self.hovered_cell
                     x = self.start_x + col * self.cell_size_x
                     y = self.start_y + row * self.cell_size_y
-                    print("sss")
                     cells=self.CellsClickByPLayer1  if self.selectRingPLayer1 else self.CellsClickByPLayer2
                     if self.hovered_cell in cells:
-                        print(self.activePLayer)
                         if(self.activePLayer=='1'):
                             dc.SetBrush(wx.Brush(wx.YELLOW))  
                         else:
