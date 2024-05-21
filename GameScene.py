@@ -1,5 +1,4 @@
 import wx
-import math
 
 class GameScene(wx.Panel):
     def __init__(self, parent):
@@ -9,7 +8,6 @@ class GameScene(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
-
         self.activePLayer ='1'
         self.isJump=False
         self.CellsClickByPLayer1=[]
@@ -19,7 +17,7 @@ class GameScene(wx.Panel):
         self.activeRing=()
         self.BlackPoints=[]
         self.smallRingsToFlip=[]
-        self.directions=[ (1,0), (1, 1), (1, -1),(-1, 0), (-1, -1), (-1, 1)]
+        self.directions=[(1,0), (1, 1), (1, -1),(-1, 0), (-1, -1), (-1, 1)]
         self.directionDiagonal=[(1, 1), (1, -1),(-1, -1), (-1, 1)]
         self.directionVertical=[(1,0),(-1,0)]
         self.ringsValidated=[]
@@ -128,14 +126,14 @@ class GameScene(wx.Panel):
                     self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
                     if(self.activePLayer=='1'):
                         self.CellsClickByPLayer1.append((row, col))
-                        self.player_label = wx.StaticText(self, label="Player 2 turn play !", pos=(300, 750))
+                        self.player_label = wx.StaticText(self, label="Player 2 turn play !                  ", pos=(300, 750))
                         self.board[row][col]=2
                         self.activePLayer='2'
                     else :
                         self.board[row][col]=-2
                         self.CellsClickByPLayer2.append((row, col))
                         self.activePLayer='1'
-                        self.player_label = wx.StaticText(self, label="Player 1 turn play !", pos=(300, 750))
+                        self.player_label = wx.StaticText(self, label="Player 1 turn play !                   ", pos=(300, 750))
                     self.turn+=1
                     self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
 
@@ -171,14 +169,14 @@ class GameScene(wx.Panel):
                             self.CellsClickByPLayer1.remove(self.activeRing)
                             self.activePLayer='2'
                             self.board[row][col]=2
-                            self.player_label = wx.StaticText(self, label="Player 2 turn play !", pos=(300, 750))
+                            self.player_label = wx.StaticText(self, label="Player 2 turn play !                ", pos=(300, 750))
 
                         else :
                             self.activePLayer='1'                            
                             self.board[row][col]=-2
                             self.CellsClickByPLayer2.append((row, col))
                             self.CellsClickByPLayer2.remove(self.activeRing)
-                            self.player_label = wx.StaticText(self, label="Player 1 turn play !", pos=(300, 750))
+                            self.player_label = wx.StaticText(self, label="Player 1 turn play !                 ", pos=(300, 750))
 
                         _row=self.activeRing[0]
                         _col=self.activeRing[1]
@@ -194,27 +192,32 @@ class GameScene(wx.Panel):
                         # chech for player 1
                         if(self.process_ring_validation(3, self.CellsClickBySmallPLayer1)):
                             self.activePLayer='1'
+                            self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePLayer), pos=(300, 750))
+
                             self.turn-=1
                         if(self.process_ring_validation(-3, self.CellsClickBySmallPLayer2)):
-                            self.activePLayer=='2'
+                            self.activePLayer='2'
+                            self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePLayer), pos=(300, 750))
                             self.turn-=1
                         self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
 
                     else :
                         if self.selectRingPLayer1 or self.selectRingPLayer2:
-                            self.selectRingPLayer1=False
-                            self.selectRingPLayer2=False
-                            
-                            if(self.activePLayer=='1'):
-                                self.activePLayer='2'
-                                self.ringPlayer1Valided +=1
-                                self.CellsClickByPLayer1.remove((row,col))
-                            else:
-                                self.activePLayer='1'
-                                self.ringPlayer2Valided +=1
-                                self.CellsClickByPLayer2.remvoe((row,col))
-                            self.turn+=1
-                            self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePLayer!='1' else (545,50,200,200) )
+                            if self.isHoverPlayer():
+                                self.selectRingPLayer1=False
+                                self.selectRingPLayer2=False
+                                
+                                if(self.activePLayer=='1'):
+                                    self.activePLayer='2'
+                                    self.ringPlayer1Valided +=1
+                                    self.CellsClickByPLayer1.remove((row,col))
+                                else:
+                                    self.activePLayer='1'
+                                    self.ringPlayer2Valided +=1
+                                    self.CellsClickByPLayer2.remove((row,col))
+                                self.board[row][col]= 1
+                                self.turn+=1
+                                self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePLayer!='1' else (545,50,200,200) )
                         
                     
 
@@ -251,7 +254,6 @@ class GameScene(wx.Panel):
                 y = self.start_y + ring[0] * self.cell_size_y 
                 self.Refresh(eraseBackground=False, rect=[x, y - self.cell_size_y // 2, self.cell_size_x, 2 * self.cell_size_y])
             
-            self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePLayer), pos=(300, 750))
 
             return True
         return False
@@ -437,10 +439,8 @@ class GameScene(wx.Panel):
                     row, col = self.hovered_cell
                     x = self.start_x + col * self.cell_size_x
                     y = self.start_y + row * self.cell_size_y
-                    print("sss")
                     cells=self.CellsClickByPLayer1  if self.selectRingPLayer1 else self.CellsClickByPLayer2
                     if self.hovered_cell in cells:
-                        print(self.activePLayer)
                         if(self.activePLayer=='1'):
                             dc.SetBrush(wx.Brush(wx.YELLOW))  
                         else:
@@ -563,7 +563,7 @@ class GameScene(wx.Panel):
         self.turn = 1
         self.turn_label = wx.StaticText(self, label="Turn: 1    ", pos=(330, 10))
         # Create player label
-        self.player_label = wx.StaticText(self, label="Player 1 turn play !", pos=(300, 750))
+        self.player_label = wx.StaticText(self, label="Player 1 turn play !\t\t\t\t ", pos=(300, 750))
         self.Refresh()
 
 
