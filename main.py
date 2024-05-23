@@ -1,5 +1,6 @@
 import wx
 from GameScene import GameScene
+from GameSceneVSai import GameScene as gamesceneao
 
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kw):
@@ -32,13 +33,25 @@ class MainFrame(wx.Frame):
         self.Centre()
 
         button1.Bind(wx.EVT_BUTTON, self.OnButton1Click)
+        button2.Bind(wx.EVT_BUTTON, self.OnButton2Click)
 
     def OnButton1Click(self, event):
         self.ShowGame()
+    def OnButton2Click(self, event):
+        self.ShowGameAI()    
 
     def ShowGame(self):
         self.panel.Destroy()  # Remove the panel with the buttons
         game_panel = GameScene(self)
+        self.SetTitle('Game Scene YNISH')
+        self.SetSize((700, 900))
+        self.Centre()
+        self.Layout()
+    
+    def ShowGameAI(self):
+    
+        self.panel.Destroy()  # Remove the panel with the buttons
+        game_panel = gamesceneao(self)
         self.SetTitle('Game Scene YNISH')
         self.SetSize((700, 900))
         self.Centre()

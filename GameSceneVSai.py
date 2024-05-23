@@ -1,4 +1,7 @@
 import wx
+import random
+import time
+import threading
 
 class GameScene(wx.Panel):
     def __init__(self, parent):
@@ -9,7 +12,7 @@ class GameScene(wx.Panel):
         #Mode normal
         self.finish= 3
         # Paramètres du jeu
-        self.gameType = '2player'
+        self.gameType = 'ai'
         self.activePlayer = '1'
         self.isJump = False
         self.turn = 1
@@ -131,52 +134,51 @@ class GameScene(wx.Panel):
 
 
 
-    def OnLeftClick(self, event):
-        x, y = event.GetPosition()
-        col = (x - self.start_x) // self.cell_size_x
-        row = (y - self.start_y) // self.cell_size_y
+    def Ai_play(self):
+        col=random.randint(0,len(self.board[0])-1)
+        row = random.randint(0, len(self.board)-1)
         if(self.turn<=10):
-            if 0 <= row < len(self.board) and 0 <= col < len(self.board[0]):
-                if self.board[row][col] != 0 and not self.isClicked((row, col)) :
+            while(self.board[row][col] == 0 or self.isClicked((row, col)) ):
+                col=random.randint(0,len(self.board[0])-1)
+                row = random.randint(0, len(self.board)-1)
+            
+            x = self.start_x + col * self.cell_size_x 
+            y = self.start_y + row* self.cell_size_y 
+            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+            if(self.activePlayer=='1'):
+                self.CellsClickByPlayer1.append((row, col))
+                self.player_label = wx.StaticText(self, label="Player 2 turn play !                  ", pos=(300, 750))
+                self.board[row][col]=2
+                self.activePlayer='2'
+            else :
+                self.board[row][col]=-2
+                self.CellsClickByPlayer2.append((row, col))
+                self.activePlayer='1'
+                self.player_label = wx.StaticText(self, label="Player 1 turn play !                   ", pos=(300, 750))
+            self.turn+=1
+            self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
+        else:
 
-                    x = self.start_x + col * self.cell_size_x 
-                    y = self.start_y + row* self.cell_size_y 
-                    self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
-                    if(self.activePlayer=='1'):
-                        self.CellsClickByPlayer1.append((row, col))
-                        self.player_label = wx.StaticText(self, label="Player 2 turn play !                  ", pos=(300, 750))
-                        self.board[row][col]=2
-                        self.activePlayer='2'
-                    else :
-                        self.board[row][col]=-2
-                        self.CellsClickByPlayer2.append((row, col))
-                        self.activePlayer='1'
-                        self.player_label = wx.StaticText(self, label="Player 1 turn play !                   ", pos=(300, 750))
-                    self.turn+=1
-                    self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
+            while(self.board[row][col] == 0 or self.isClicked((row, col)) or not (row,col) in self.CellsClickByPlayer2):
+                col=random.randint(0,len(self.board[0])-1)
+                row = random.randint(0, len(self.board)-1)
+                print(col,row)
+            print(col,row)
+            x = self.start_x + col * self.cell_size_x 
+            y = self.start_y + row* self.cell_size_y 
+            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+            if(self.activePlayer=='1'):
+                self.CellsClickBySmallPlayer1.append((row, col))
+                self.board[row][col]=3
+            else :
+                self.board[row][col]=-3
+                self.CellsClickBySmallPlayer2.append((row, col))
+            self.isJump=True
+            self.activeRing=(row,col)
+            self.addBlackPoints([row,col])
+            self.RefreshBlackDots()
 
-
-                else:
-                    self.hovered_cell = None
-        else :
-            if not self.isJump and not(self.selectRingPlayer1 or self.selectRingPlayer2):
-                if 0 <= row < len(self.board) and 0 <= col < len(self.board[0]):
-                    if self.board[row][col] != 0 and self.isHoverPlayer() :
-                        x = self.start_x + col * self.cell_size_x 
-                        y = self.start_y + row* self.cell_size_y 
-                        self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
-                        if(self.activePlayer=='1'):
-                            self.CellsClickBySmallPlayer1.append((row, col))
-                            self.board[row][col]=3
-                        else :
-                            self.board[row][col]=-3
-                            self.CellsClickBySmallPlayer2.append((row, col))
-                        self.isJump=True
-                        self.activeRing=(row,col)
-                        self.addBlackPoints([row,col])
-                        self.RefreshBlackDots()
-
-            else:
+            if(False):
                 if 0 <= row < len(self.board) and 0 <= col < len(self.board[0]) :
                     if self.board[row][col] != 0 and self.hovered_cell in self.BlackPoints and not(self.selectRingPlayer1 or self.selectRingPlayer2):
                         x = self.start_x + col * self.cell_size_x 
@@ -236,7 +238,118 @@ class GameScene(wx.Panel):
                                 self.board[row][col]= 1
                                 self.turn+=1
                                 self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePlayer!='1' else (545,50,200,200) )
-                        
+    def OnLeftClick(self, event):
+        if(self.gameType=="ai" and  self.activePlayer=='1'):
+            x, y = event.GetPosition()
+            col = (x - self.start_x) // self.cell_size_x
+            row = (y - self.start_y) // self.cell_size_y
+            if(self.turn<=10):
+                if 0 <= row < len(self.board) and 0 <= col < len(self.board[0]):
+                    if self.board[row][col] != 0 and not self.isClicked((row, col)) :
+
+                        x = self.start_x + col * self.cell_size_x 
+                        y = self.start_y + row* self.cell_size_y 
+                        self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                        if(self.activePlayer=='1'):
+                            self.CellsClickByPlayer1.append((row, col))
+                            self.player_label = wx.StaticText(self, label="Player 2 turn play !                  ", pos=(300, 750))
+                            self.board[row][col]=2
+                            self.activePlayer='2'
+                            timer = threading.Timer(0.5, self.Ai_play)
+                            timer.start()
+                        else :
+                            self.board[row][col]=-2
+                            self.CellsClickByPlayer2.append((row, col))
+                            self.activePlayer='1'
+                            self.player_label = wx.StaticText(self, label="Player 1 turn play !                   ", pos=(300, 750))
+                        self.turn+=1
+                        self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
+
+
+                    else:
+                        self.hovered_cell = None
+            else :
+                if not self.isJump and not(self.selectRingPlayer1 or self.selectRingPlayer2):
+                    if 0 <= row < len(self.board) and 0 <= col < len(self.board[0]):
+                        if self.board[row][col] != 0 and self.isHoverPlayer() :
+                            x = self.start_x + col * self.cell_size_x 
+                            y = self.start_y + row* self.cell_size_y 
+                            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                            if(self.activePlayer=='1'):
+                                self.CellsClickBySmallPlayer1.append((row, col))
+                                self.board[row][col]=3
+                                timer = threading.Timer(0.5, self.Ai_play)
+                                timer.start()
+                            else :
+                                self.board[row][col]=-3
+                                self.CellsClickBySmallPlayer2.append((row, col))
+                            self.isJump=True
+                            self.activeRing=(row,col)
+                            self.addBlackPoints([row,col])
+                            self.RefreshBlackDots()
+
+                else:
+                    if 0 <= row < len(self.board) and 0 <= col < len(self.board[0]) :
+                        if self.board[row][col] != 0 and self.hovered_cell in self.BlackPoints and not(self.selectRingPlayer1 or self.selectRingPlayer2):
+                            x = self.start_x + col * self.cell_size_x 
+                            y = self.start_y + row* self.cell_size_y 
+                            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                            if(self.activePlayer=='1'):
+                                self.CellsClickByPlayer1.append((row, col))
+                                self.CellsClickByPlayer1.remove(self.activeRing)
+                                self.activePlayer='2'
+                                self.board[row][col]=2
+                                self.player_label = wx.StaticText(self, label="Player 2 turn play !                ", pos=(300, 750))
+
+                            else :
+                                self.activePlayer='1'                            
+                                self.board[row][col]=-2
+                                self.CellsClickByPlayer2.append((row, col))
+                                self.CellsClickByPlayer2.remove(self.activeRing)
+                                self.player_label = wx.StaticText(self, label="Player 1 turn play !                 ", pos=(300, 750))
+
+                            _row=self.activeRing[0]
+                            _col=self.activeRing[1]
+                            x = self.start_x + _col * self.cell_size_x 
+                            y = self.start_y + _row* self.cell_size_y 
+                            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                            self.flip((row, col))
+
+                            self.isJump=False
+                            self.RefreshBlackDots(True)
+                            self.turn+=1
+                            self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
+                            # chech for player 1
+                            if(self.process_ring_validation(3, self.CellsClickBySmallPlayer1)):
+                                self.activePlayer='1'
+                                self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePlayer), pos=(300, 750))
+
+                                self.turn-=1
+                            if(self.process_ring_validation(-3, self.CellsClickBySmallPlayer2)):
+                                self.activePlayer='2'
+                                self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePlayer), pos=(300, 750))
+                                self.turn-=1
+                            self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
+
+                        else :
+                            if self.selectRingPlayer1 or self.selectRingPlayer2:
+                                if self.isHoverPlayer():
+                                    self.selectRingPlayer1=False
+                                    self.selectRingPlayer2=False
+                                    
+                                    if(self.activePlayer=='1'):
+                                        self.activePlayer='2'
+                                        self.ringPlayer1Validated +=1
+                                        self.CellsClickByPlayer1.remove((row,col))
+                                    else:
+                                        self.activePlayer='1'
+                                        self.ringPlayer2Validated +=1
+                                        self.CellsClickByPlayer2.remove((row,col))
+                                    self.board[row][col]= 1
+                                    self.turn+=1
+                                    self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePlayer!='1' else (545,50,200,200) )
+        
+                            
                     
 
 
@@ -402,40 +515,9 @@ class GameScene(wx.Panel):
 
     def drawHoverCircle(self,dc):
         # 5 start 
-        if(self.turn<=10):
-            if self.hovered_cell is not None and not self.isClicked(self.hovered_cell):
-                row, col = self.hovered_cell
-                x = self.start_x + col * self.cell_size_x
-                y = self.start_y + row * self.cell_size_y
-                # Draw empty circle with 4 pixel width
-                outer_radius = self.cell_size_x // 2 - 2
-                inner_radius = outer_radius - 5
-                dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
-                if(self.activePlayer=='1'):
-                    dc.SetBrush(wx.Brush(wx.Colour(255, 255, 175)))  # Set brush color to red
-                else:
-                    dc.SetBrush(wx.Brush(wx.Colour(130, 130, 255)))  # Set brush color to red
-                dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, outer_radius)
-                dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
-                dc.SetBrush(wx.Brush(wx.WHITE))  # Set brush color to red
-                dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, inner_radius)
-
-        else :
-            if  not self.isJump and not(self.selectRingPlayer1 or self.selectRingPlayer2) :
-                if self.isHoverPlayer():
-                    row, col = self.hovered_cell
-                    x = self.start_x + col * self.cell_size_x
-                    y = self.start_y + row * self.cell_size_y
-                    # Draw empty circle with 4 pixel width
-                    outer_radius = self.cell_size_x // 2 - 10
-                    dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
-                    if(self.activePlayer=='1'):
-                        dc.SetBrush(wx.Brush(wx.Colour(255, 255, 175)))  # Set brush color to red
-                    else:
-                        dc.SetBrush(wx.Brush(wx.Colour(130, 130, 255)))  # Set brush color to red
-                    dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, outer_radius)
-            else :
-                if self.hovered_cell in self.BlackPoints and not(self.selectRingPlayer1 or self.selectRingPlayer2):
+        if(self.gameType=="ai" and  self.activePlayer=='1'):
+            if(self.turn<=10):
+                if self.hovered_cell is not None and not self.isClicked(self.hovered_cell):
                     row, col = self.hovered_cell
                     x = self.start_x + col * self.cell_size_x
                     y = self.start_y + row * self.cell_size_y
@@ -451,20 +533,52 @@ class GameScene(wx.Panel):
                     dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
                     dc.SetBrush(wx.Brush(wx.WHITE))  # Set brush color to red
                     dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, inner_radius)
-    
-            if(self.selectRingPlayer1 or self.selectRingPlayer2):
-                if self.isHoverPlayer():
-                    row, col = self.hovered_cell
-                    x = self.start_x + col * self.cell_size_x
-                    y = self.start_y + row * self.cell_size_y
-                    cells=self.CellsClickByPlayer1  if self.selectRingPlayer1 else self.CellsClickByPlayer2
-                    if self.hovered_cell in cells:
+
+            else :
+                if  not self.isJump and not(self.selectRingPlayer1 or self.selectRingPlayer2) :
+                    if self.isHoverPlayer():
+                        row, col = self.hovered_cell
+                        x = self.start_x + col * self.cell_size_x
+                        y = self.start_y + row * self.cell_size_y
+                        # Draw empty circle with 4 pixel width
+                        outer_radius = self.cell_size_x // 2 - 10
+                        dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
                         if(self.activePlayer=='1'):
-                            dc.SetBrush(wx.Brush(wx.YELLOW))  
+                            dc.SetBrush(wx.Brush(wx.Colour(255, 255, 175)))  # Set brush color to red
                         else:
-                            dc.SetBrush(wx.Brush(wx.BLUE))  
-                        
-                        self.drawTriangle(x,y,dc)
+                            dc.SetBrush(wx.Brush(wx.Colour(130, 130, 255)))  # Set brush color to red
+                        dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, outer_radius)
+                else :
+                    if self.hovered_cell in self.BlackPoints and not(self.selectRingPlayer1 or self.selectRingPlayer2):
+                        row, col = self.hovered_cell
+                        x = self.start_x + col * self.cell_size_x
+                        y = self.start_y + row * self.cell_size_y
+                        # Draw empty circle with 4 pixel width
+                        outer_radius = self.cell_size_x // 2 - 2
+                        inner_radius = outer_radius - 5
+                        dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
+                        if(self.activePlayer=='1'):
+                            dc.SetBrush(wx.Brush(wx.Colour(255, 255, 175)))  # Set brush color to red
+                        else:
+                            dc.SetBrush(wx.Brush(wx.Colour(130, 130, 255)))  # Set brush color to red
+                        dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, outer_radius)
+                        dc.SetPen(wx.Pen(wx.BLACK, 1))  # Set pen color to blue with a width of 4 pixels
+                        dc.SetBrush(wx.Brush(wx.WHITE))  # Set brush color to red
+                        dc.DrawCircle(x + self.cell_size_x // 2, y + self.cell_size_y // 2, inner_radius)
+        
+                if(self.selectRingPlayer1 or self.selectRingPlayer2):
+                    if self.isHoverPlayer():
+                        row, col = self.hovered_cell
+                        x = self.start_x + col * self.cell_size_x
+                        y = self.start_y + row * self.cell_size_y
+                        cells=self.CellsClickByPlayer1  if self.selectRingPlayer1 else self.CellsClickByPlayer2
+                        if self.hovered_cell in cells:
+                            if(self.activePlayer=='1'):
+                                dc.SetBrush(wx.Brush(wx.YELLOW))  
+                            else:
+                                dc.SetBrush(wx.Brush(wx.BLUE))  
+                            
+                            self.drawTriangle(x,y,dc)
 
 
     def drawTriangle(self,x,y,dc):
