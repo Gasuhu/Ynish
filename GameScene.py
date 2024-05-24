@@ -1,13 +1,15 @@
 import wx
 
 class GameScene(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent,mode):
         super(GameScene, self).__init__(parent)
         self.parent = parent
         #Blitz
-        #self.finish =1 
+        if( mode=="Blitz" ):
+            self.finish =1 
         #Mode normal
-        self.finish= 3
+        else:
+            self.finish= 3
         # Paramètres du jeu
         self.gameType = '2player'
         self.activePlayer = '1'
@@ -75,6 +77,10 @@ class GameScene(wx.Panel):
         # Boutons pour retourner au menu principal et redémarrer le jeu
         retour_menu = wx.Button(self, label='Retour au menu principal', size=(150, 40), pos=(490, 790))
         retour_menu.Bind(wx.EVT_BUTTON, self.CloseGame)
+        self.retourner = False  
+        self.retournerButton = wx.Button(self, label="Annuler",size=(150, 40), pos=(50, 750))
+        self.retournerButton.Hide()  # Initially hide the button
+        self.retournerButton.Bind(wx.EVT_BUTTON, self.unselectRing)
 
         redemarrer = wx.Button(self, label='Redémarrer la partie', size=(150, 40), pos=(50, 790))
         redemarrer.Bind(wx.EVT_BUTTON, self.RestartGame)
@@ -175,6 +181,8 @@ class GameScene(wx.Panel):
                         self.activeRing=(row,col)
                         self.addBlackPoints([row,col])
                         self.RefreshBlackDots()
+                        self.retourner=True
+                        self.update_button_visibility()
 
             else:
                 if 0 <= row < len(self.board) and 0 <= col < len(self.board[0]) :
@@ -205,6 +213,8 @@ class GameScene(wx.Panel):
 
                         self.isJump=False
                         self.RefreshBlackDots(True)
+                        self.retourner=False
+                        self.update_button_visibility()
                         self.turn+=1
                         self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
                         # chech for player 1
@@ -606,3 +616,17 @@ class GameScene(wx.Panel):
             self.parent.ShowMainMenu()
         
         confirmation_dialog.Destroy()
+    def update_button_visibility(self):
+        if self.retourner:
+            self.retournerButton.Show()
+        else:
+            self.retournerButton.Hide()
+
+        # Update the layout to reflect the changes
+        self.Layout()
+    def unselectRing(self,event):
+        self.retourner=False
+        self.update_button_visibility()
+        self.RefreshBlackDots(True)
+        self.CellsClickBySmallPlayer1.pop()
+        self.isJump=False

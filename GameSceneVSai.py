@@ -4,19 +4,21 @@ import time
 import threading
 
 class GameScene(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent,mode):
         super(GameScene, self).__init__(parent)
         self.parent = parent
         #Blitz
-        #self.finish =1 
+        if( mode=="Blitz" ):
+            self.finish =1 
         #Mode normal
-        self.finish= 3
+        else:
+            self.finish= 3
         # Paramètres du jeu
         self.gameType = 'ai'
         self.activePlayer = '1'
         self.isJump = False
         self.turn = 1
-
+        self.gameEnded = False
         # État du jeu
         self.CellsClickByPlayer1 = []
         self.CellsClickByPlayer2 = []
@@ -92,6 +94,8 @@ class GameScene(wx.Panel):
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
 
     def OnPaint(self, event):
+        
+
         # Créer le contexte de dessin
         dc = wx.PaintDC(self)
         dc.Clear()  # Effacer l'écran
@@ -105,7 +109,9 @@ class GameScene(wx.Panel):
         self.drawValidationsRings(dc)  # Dessiner les anneaux validés
 
         # Vérifier si la partie est terminée
-        self.checkEndGame()
+        if(not self.gameEnded and not (self.ringPlayer1Validated<self.finish and self.ringPlayer2Validated<self.finish)) :
+            self.gameEnded = True
+            self.checkEndGame()
 
 
 
@@ -159,85 +165,97 @@ class GameScene(wx.Panel):
             self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
         else:
 
-            while(self.board[row][col] == 0 or self.isClicked((row, col)) or not (row,col) in self.CellsClickByPlayer2):
-                col=random.randint(0,len(self.board[0])-1)
-                row = random.randint(0, len(self.board)-1)
-                print(col,row)
-            print(col,row)
-            x = self.start_x + col * self.cell_size_x 
-            y = self.start_y + row* self.cell_size_y 
-            self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
-            if(self.activePlayer=='1'):
-                self.CellsClickBySmallPlayer1.append((row, col))
-                self.board[row][col]=3
+            if(self.activePlayer=="2" and not self.isJump):
+                while(self.board[row][col] == 0 or not (row,col) in self.CellsClickByPlayer2):
+                    col=random.randint(0,len(self.board[0])-1)
+                    row = random.randint(0, len(self.board)-1)
+  
+                x = self.start_x + col * self.cell_size_x 
+                y = self.start_y + row* self.cell_size_y 
+                self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                if(self.activePlayer=='1'):
+                    self.CellsClickBySmallPlayer1.append((row, col))
+                    self.board[row][col]=3
+                else :
+                    self.board[row][col]=-3
+                    self.CellsClickBySmallPlayer2.append((row, col))
+                self.isJump=True
+                self.activeRing=(row,col)
+                self.addBlackPoints([row,col])
+                self.RefreshBlackDots()
+                timer = threading.Timer(0.5, self.Ai_play)
+                timer.start()
             else :
-                self.board[row][col]=-3
-                self.CellsClickBySmallPlayer2.append((row, col))
-            self.isJump=True
-            self.activeRing=(row,col)
-            self.addBlackPoints([row,col])
-            self.RefreshBlackDots()
+                if(self.isJump and self.activePlayer=="2"):
+                    while(self.board[row][col] == 0 or not (row,col) in self.BlackPoints):
+                        col=random.randint(0,len(self.board[0])-1)
+                        row = random.randint(0, len(self.board)-1)
 
-            if(False):
-                if 0 <= row < len(self.board) and 0 <= col < len(self.board[0]) :
-                    if self.board[row][col] != 0 and self.hovered_cell in self.BlackPoints and not(self.selectRingPlayer1 or self.selectRingPlayer2):
-                        x = self.start_x + col * self.cell_size_x 
-                        y = self.start_y + row* self.cell_size_y 
-                        self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
-                        if(self.activePlayer=='1'):
-                            self.CellsClickByPlayer1.append((row, col))
-                            self.CellsClickByPlayer1.remove(self.activeRing)
-                            self.activePlayer='2'
-                            self.board[row][col]=2
-                            self.player_label = wx.StaticText(self, label="Player 2 turn play !                ", pos=(300, 750))
-
-                        else :
-                            self.activePlayer='1'                            
-                            self.board[row][col]=-2
-                            self.CellsClickByPlayer2.append((row, col))
-                            self.CellsClickByPlayer2.remove(self.activeRing)
-                            self.player_label = wx.StaticText(self, label="Player 1 turn play !                 ", pos=(300, 750))
-
-                        _row=self.activeRing[0]
-                        _col=self.activeRing[1]
-                        x = self.start_x + _col * self.cell_size_x 
-                        y = self.start_y + _row* self.cell_size_y 
-                        self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
-                        self.flip((row, col))
-
-                        self.isJump=False
-                        self.RefreshBlackDots(True)
-                        self.turn+=1
-                        self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
-                        # chech for player 1
-                        if(self.process_ring_validation(3, self.CellsClickBySmallPlayer1)):
-                            self.activePlayer='1'
-                            self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePlayer), pos=(300, 750))
-
-                            self.turn-=1
-                        if(self.process_ring_validation(-3, self.CellsClickBySmallPlayer2)):
-                            self.activePlayer='2'
-                            self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePlayer), pos=(300, 750))
-                            self.turn-=1
-                        self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
+                    x = self.start_x + col * self.cell_size_x 
+                    y = self.start_y + row* self.cell_size_y 
+                    self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                    
+                    if(self.activePlayer=='1'):
+                        self.CellsClickByPlayer1.append((row, col))
+                        print("active ring",self.activeRing)
+                        print("cell clicked",self.CellsClickByPlayer1)
+                        self.CellsClickByPlayer1.remove(self.activeRing)
+                        self.activePlayer='2'
+                        self.board[row][col]=2
+                        self.player_label = wx.StaticText(self, label="Player 2 turn play !                ", pos=(300, 750))
 
                     else :
-                        if self.selectRingPlayer1 or self.selectRingPlayer2:
-                            if self.isHoverPlayer():
-                                self.selectRingPlayer1=False
-                                self.selectRingPlayer2=False
-                                
-                                if(self.activePlayer=='1'):
-                                    self.activePlayer='2'
-                                    self.ringPlayer1Validated +=1
-                                    self.CellsClickByPlayer1.remove((row,col))
-                                else:
-                                    self.activePlayer='1'
-                                    self.ringPlayer2Validated +=1
-                                    self.CellsClickByPlayer2.remove((row,col))
-                                self.board[row][col]= 1
-                                self.turn+=1
-                                self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePlayer!='1' else (545,50,200,200) )
+                        self.activePlayer='1'                            
+                        self.board[row][col]=-2
+                        self.CellsClickByPlayer2.append((row, col))
+                        self.CellsClickByPlayer2.remove(self.activeRing)
+                        self.player_label = wx.StaticText(self, label="Player 1 turn play !                 ", pos=(300, 750))
+
+                    _row=self.activeRing[0]
+                    _col=self.activeRing[1]
+                    x = self.start_x + _col * self.cell_size_x 
+                    y = self.start_y + _row* self.cell_size_y 
+                    self.Refresh(eraseBackground=False,rect=[x, y-self.cell_size_y //2, self.cell_size_x,2*self.cell_size_y])
+                    self.flip((row, col))
+
+                    self.isJump=False
+                    self.RefreshBlackDots(True)
+                    self.turn+=1
+                    self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
+                    # chech for player 1
+                    if(self.process_ring_validation(3, self.CellsClickBySmallPlayer1)):
+                        self.activePlayer='1'
+                        self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePlayer), pos=(300, 750))
+
+                        self.turn-=1
+                    if(self.process_ring_validation(-3, self.CellsClickBySmallPlayer2)):
+                        self.activePlayer='2'
+                        timer = threading.Timer(0.5, self.Ai_play)
+                        timer.start()
+                        self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePlayer), pos=(300, 750))
+                        self.turn-=1
+                    self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
+                else :
+                        if self.selectRingPlayer2:
+                            while(self.board[row][col] == 0 or not (row,col) in self.CellsClickByPlayer2 and self.activePlayer=='2'):
+                                col=random.randint(0,len(self.board[0])-1)
+                                row = random.randint(0, len(self.board)-1)
+                        
+                                if self.isHoverPlayer():
+                                    self.selectRingPlayer1=False
+                                    self.selectRingPlayer2=False
+                                    
+                                    if(self.activePlayer=='1'):
+                                        self.activePlayer='2'
+                                        self.ringPlayer1Validated +=1
+                                        self.CellsClickByPlayer1.remove((row,col))
+                                    else:
+                                        self.activePlayer='1'
+                                        self.ringPlayer2Validated +=1
+                                        self.CellsClickByPlayer2.remove((row,col))
+                                    self.board[row][col]= 1
+                                    self.turn+=1
+                                    self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePlayer!='1' else (545,50,200,200) )
     def OnLeftClick(self, event):
         if(self.gameType=="ai" and  self.activePlayer=='1'):
             x, y = event.GetPosition()
@@ -278,8 +296,7 @@ class GameScene(wx.Panel):
                             if(self.activePlayer=='1'):
                                 self.CellsClickBySmallPlayer1.append((row, col))
                                 self.board[row][col]=3
-                                timer = threading.Timer(0.5, self.Ai_play)
-                                timer.start()
+
                             else :
                                 self.board[row][col]=-3
                                 self.CellsClickBySmallPlayer2.append((row, col))
@@ -298,6 +315,8 @@ class GameScene(wx.Panel):
                                 self.CellsClickByPlayer1.append((row, col))
                                 self.CellsClickByPlayer1.remove(self.activeRing)
                                 self.activePlayer='2'
+                                timer = threading.Timer(0.5, self.Ai_play)
+                                timer.start()
                                 self.board[row][col]=2
                                 self.player_label = wx.StaticText(self, label="Player 2 turn play !                ", pos=(300, 750))
 
@@ -327,6 +346,8 @@ class GameScene(wx.Panel):
                                 self.turn-=1
                             if(self.process_ring_validation(-3, self.CellsClickBySmallPlayer2)):
                                 self.activePlayer='2'
+                                timer = threading.Timer(0.5, self.Ai_play)
+                                timer.start()
                                 self.player_label = wx.StaticText(self, label="Player {0} turn play ! Choisie un anneaux a enlever".format(self.activePlayer), pos=(300, 750))
                                 self.turn-=1
                             self.turn_label = wx.StaticText(self, label="Turn: {0}".format(self.turn), pos=(330, 10))
@@ -340,6 +361,8 @@ class GameScene(wx.Panel):
                                     if(self.activePlayer=='1'):
                                         self.activePlayer='2'
                                         self.ringPlayer1Validated +=1
+                                        print("active ring",(row,col))
+                                        print("cell clicked",self.CellsClickByPlayer1)
                                         self.CellsClickByPlayer1.remove((row,col))
                                     else:
                                         self.activePlayer='1'
@@ -348,6 +371,8 @@ class GameScene(wx.Panel):
                                     self.board[row][col]= 1
                                     self.turn+=1
                                     self.Refresh(eraseBackground=False,rect=(50,50,200,200) if self.activePlayer!='1' else (545,50,200,200) )
+                                    timer = threading.Timer(0.5, self.Ai_play)
+                                    timer.start()
         
                             
                     
