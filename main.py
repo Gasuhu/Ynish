@@ -1,8 +1,5 @@
 import wx
 from GameScene import GameScene
-from GameSceneVSai import GameScene as gamesceneao
-from GameSceneServer import GameScene as GameSceneServer
-from RoomManager import RoomManager
 
 
 class MainFrame(wx.Frame):
@@ -32,13 +29,13 @@ class MainFrame(wx.Frame):
         button_size = (200, 60)
 
         # Add buttons with gaps in between
-        button1 = wx.Button(self.panel, label='Jouer à 2 Joueurs', size=button_size)
-        button2 = wx.Button(self.panel, label='Jouer vs AI', size=button_size)
-        button3 = wx.Button(self.panel, label='Jouer en réseau', size=button_size)
+        play2player = wx.Button(self.panel, label='Jouer à 2 Joueurs', size=button_size)
+        playAi = wx.Button(self.panel, label='Jouer vs AI', size=button_size)
+        playLan = wx.Button(self.panel, label='Jouer en réseau', size=button_size)
 
-        self.vbox.Add(button1, 0, wx.ALIGN_CENTER | wx.TOP, 20)  # Add top gap for the first button
-        self.vbox.Add(button2, 0, wx.ALIGN_CENTER | wx.TOP, 20)  # Add top gap for the second button
-        self.vbox.Add(button3, 0, wx.ALIGN_CENTER | wx.TOP, 20)  # Add top gap for the third button
+        self.vbox.Add(play2player, 0, wx.ALIGN_CENTER | wx.TOP, 20)  # Add top gap for the first button
+        self.vbox.Add(playAi, 0, wx.ALIGN_CENTER | wx.TOP, 20)  # Add top gap for the second button
+        self.vbox.Add(playLan, 0, wx.ALIGN_CENTER | wx.TOP, 20)  # Add top gap for the third button
 
         self.hbox = wx.BoxSizer(wx.HORIZONTAL)
         self.hbox.Add(self.vbox, 1, wx.ALIGN_CENTER)
@@ -49,50 +46,30 @@ class MainFrame(wx.Frame):
         self.SetTitle('Game Menu')
         self.Centre()
 
-        button1.Bind(wx.EVT_BUTTON, self.OnButton1Click)
-        button2.Bind(wx.EVT_BUTTON, self.OnButton2Click)
-        button3.Bind(wx.EVT_BUTTON, self.OnButton3Click)
+        play2player.Bind(wx.EVT_BUTTON, self.OnPlay2player)
+        playAi.Bind(wx.EVT_BUTTON, self.OnPlayAi)
+        playLan.Bind(wx.EVT_BUTTON, self.OnPlayLan)
 
-    def OnButton1Click(self, event):
+    def OnPlay2player(self, event):
         selected_mode = self.mode_choice.GetStringSelection()
-        self.ShowGame(selected_mode)
+        self.ShowGame(selected_mode,'2player')
         
-    def OnButton2Click(self, event):
+    def OnPlayAi(self, event):
         selected_mode = self.mode_choice.GetStringSelection()
-        self.ShowGameAI(selected_mode)
-    def OnButton3Click(self, event):
+        self.ShowGame(selected_mode,'ai')
+    def OnPlayLan(self, event):
         selected_mode = self.mode_choice.GetStringSelection()
         self.ShowRoomMangement(selected_mode)
 
-    def ShowGame(self, mode):
+    def ShowGame(self, mode,game_type):
         self.panel.Destroy()  # Remove the panel with the buttons
-        game_panel = GameScene(self, mode=mode)  # Pass the selected mode
+        GameScene(self, mode=mode,game_type=game_type)  # Pass the selected mode
         self.SetTitle('Game Scene YNISH')
         self.SetSize((700, 900))
         self.Centre()
         self.Layout()
     
-    def ShowGameAI(self, mode):
-        self.panel.Destroy()  # Remove the panel with the buttons
-        game_panel = gamesceneao(self, mode=mode)  # Pass the selected mode
-        self.SetTitle('Game Scene YNISH')
-        self.SetSize((700, 900))
-        self.Centre()
-        self.Layout()
-    def ShowGameServer(self, mode,socket):
-        self.panel.Destroy()  # Remove the panel with the buttons
-        game_panel = GameSceneServer(self, mode=mode,socket1=socket)  # Pass the selected mode
-        self.SetTitle('Game Scene YNISH')
-        self.SetSize((700, 900))
-        self.Centre()
-        self.Layout()
-    def ShowRoomMangement(self, mode):
-        self.panel.Destroy()  # Remove the panel with the buttons
-        game_panel = RoomManager(self,mode=mode)  # Pass the selected mode
-        self.SetTitle('Room Mangement')
-        self.SetSize((600, 700))
-        self.Centre()
-        self.Layout()
+
 
     def ShowMainMenu(self,server=False,socket=None):
         self.DestroyChildren()  # Remove all children components
