@@ -1,7 +1,9 @@
 import wx
 from GameScene import GameScene
 from GameSceneVSai import GameScene as gamesceneao
+from GameSceneServer import GameScene as GameSceneServer
 from RoomManager import RoomManager
+
 
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kw):
@@ -19,8 +21,8 @@ class MainFrame(wx.Frame):
         self.vbox.Add(title, 0, wx.ALIGN_CENTER | wx.TOP, -130)  # Move the label a bit higher
 
         # Add a choice control for selecting game mode
-        mode_choices = ["Normal", "Blitz"]
-        self.mode_choice = wx.Choice(self.panel, choices=mode_choices, style=wx.CB_SORT)
+        mode_choices = ["Normal","Blitz"]
+        self.mode_choice = wx.Choice(self.panel, choices=mode_choices)
         choice_font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.mode_choice.SetFont(choice_font)
         self.mode_choice.SetSelection(0)  # Default to the first choice
@@ -77,17 +79,27 @@ class MainFrame(wx.Frame):
         self.SetSize((700, 900))
         self.Centre()
         self.Layout()
+    def ShowGameServer(self, mode,socket):
+        self.panel.Destroy()  # Remove the panel with the buttons
+        game_panel = GameSceneServer(self, mode=mode,socket1=socket)  # Pass the selected mode
+        self.SetTitle('Game Scene YNISH')
+        self.SetSize((700, 900))
+        self.Centre()
+        self.Layout()
     def ShowRoomMangement(self, mode):
         self.panel.Destroy()  # Remove the panel with the buttons
         game_panel = RoomManager(self,mode=mode)  # Pass the selected mode
         self.SetTitle('Room Mangement')
-        self.SetSize((600, 800))
+        self.SetSize((600, 700))
         self.Centre()
         self.Layout()
 
-    def ShowMainMenu(self):
+    def ShowMainMenu(self,server=False,socket=None):
         self.DestroyChildren()  # Remove all children components
         self.InitUI()  # Reinitialize the main menu UI
+        if(server):
+            self.ShowGameServer("Normal",socket)
+
 
 def main():
     app = wx.App()
